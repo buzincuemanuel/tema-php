@@ -1,96 +1,4 @@
 <!DOCTYPE html>
-<script>
-    document.addEventListener("DOMContentLoaded", () => {
-
-        const roomListContainer = document.getElementById("room-list");
-        function fetchRooms() {
-            fetch('get_rooms.php')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error("Network response was not ok");
-                    }
-                    return response.json();
-                })
-                .then(roomsData => {
-                    console.log("Data received from PHP:", roomsData);
-                    roomListContainer.innerHTML = '';
-
-                    roomsData.forEach(room => {
-
-                        const card = document.createElement('div');
-                        card.className = 'room-card';
-                        card.innerHTML = `
-                        <h3>${room.hotel}</h3>
-                        <p><strong>Category:</strong> ${room.category}</p>
-                        <p><strong>Price:</strong> $${room.price} / night</p>
-                        <button onclick="openBookingModal(${room.id}, '${room.hotel}')">Book Now</button>
-                    `;
-
-                        roomListContainer.appendChild(card);
-                    });
-
-                })
-                .catch(error => {
-                    console.error("Error fetching data:", error);
-                    roomListContainer.innerHTML = '<p>Error loading rooms.</p>';
-                });
-        }
-
-        fetchRooms();
-
-        const bookingForm = document.getElementById('booking-form');
-        bookingForm.addEventListener('submit', (event) => {
-            event.preventDefault();
-            const hiddenId = document.getElementById('hidden-room-id').value;
-            const clientName = document.getElementById('client-name').value;
-            const startDate = document.getElementById('start-date').value;
-            const endDate = document.getElementById('end-date').value;
-
-            const requestData = {
-                id_camera: hiddenId,
-                nume_client: clientName,
-                data_start: startDate,
-                data_final: endDate
-            };
-
-            fetch('book_rooms.php', {method: 'Post', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestData)})
-                .then(response => response.json())
-                .then(data =>{
-                    alert(data.message);
-                    closeBookingModal();
-
-                })
-                .catch(error => {
-                    console.error(error);
-                    alert("Error while sending data");
-                })
-        });
-
-    });
-
-    function openBookingModal(roomId, hotelName){
-
-        const modal = document.getElementById("booking-modal")
-        modal.style.display = 'block'
-        document.getElementById('hidden-room-id').value = roomId
-
-    }
-
-    function closeBookingModal(){
-        document.getElementById("booking-modal").style.display = 'none'
-        document.getElementById('booking-form').reset();
-    }
-</script>
-
-
-
-
-
-
-
-
-
-
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -113,6 +21,11 @@
 <body>
 
 <h1>Hotel Room Booking System</h1>
+
+<nav style="margin-bottom: 20px;">
+    <a href="index.php" style="text-decoration: none; font-weight: bold; color: blue;">Browse Rooms</a> |
+    <a href="my_bookings.php" style="text-decoration: none; font-weight: bold; color: blue;">My Bookings</a>
+</nav>
 
 <div class="filter-section" id="filters">
     <div class="form-group">
@@ -175,6 +88,128 @@
         <button type="button" id="btn-close-modal" onclick="closeBookingModal()">Cancel</button>
     </form>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const roomListContainer = document.getElementById("room-list");
+        let currentPage = 1;
+
+        function fetchRooms() {
+            const hotelFilter = document.getElementById('filter-hotel').value;
+            const categoryFilter = document.getElementById('filter-category').value;
+            const priceFilter = document.getElementById('filter-price').value;
+
+            let url = `get_rooms.php?page=${currentPage}`;
+            if (hotelFilter) url += `&hotel=${encodeURIComponent(hotelFilter)}`;
+            if (categoryFilter) url += `&category=${encodeURIComponent(categoryFilter)}`;
+            if (priceFilter) url += `&price=${encodeURIComponent(priceFilter)}`;
+
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("Network response was not ok");
+                    }
+                    return response.json();
+                })
+                .then(roomsData => {
+                    roomListContainer.innerHTML = '';
+
+                    if(roomsData.error) {
+                        roomListContainer.innerHTML = `<p>${roomsData.error}</p>`;
+                        return;
+                    }
+
+                    if (roomsData.length === 0) {
+                        roomListContainer.innerHTML = '<p>No rooms found for these filters/page.</p>';
+                        return;
+                    }
+
+                    roomsData.forEach(room => {
+                        const card = document.createElement('div');
+                        card.className = 'room-card';
+                        card.innerHTML = `
+                            <h3>${room.hotel}</h3>
+                            <p><strong>Category:</strong> ${room.category}</p>
+                            <p><strong>Price:</strong> $${room.price} / night</p>
+                            <button onclick="openBookingModal(${room.id}, '${room.hotel}')">Book Now</button>
+                        `;
+                        roomListContainer.appendChild(card);
+                    });
+
+                    document.getElementById('current-page').innerText = `Page ${currentPage}`;
+                })
+                .catch(error => {
+                    console.error("Error fetching data:", error);
+                    roomListContainer.innerHTML = '<p>Error loading rooms.</p>';
+                });
+        }
+
+        fetchRooms();
+
+        document.getElementById('btn-next-page').addEventListener('click', () => {
+            currentPage++;
+            fetchRooms();
+        });
+
+        document.getElementById('btn-prev-page').addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                fetchRooms();
+            }
+        });
+
+        document.getElementById('btn-apply-filters').addEventListener('click', () => {
+            currentPage = 1;
+            fetchRooms();
+        });
+
+        const bookingForm = document.getElementById('booking-form');
+        bookingForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            const hiddenId = document.getElementById('hidden-room-id').value;
+            const clientName = document.getElementById('client-name').value;
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+
+            const requestData = {
+                id_camera: hiddenId,
+                nume_client: clientName,
+                data_start: startDate,
+                data_final: endDate
+            };
+
+            fetch('book_room.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData)
+            })
+                .then(response => response.json())
+                .then(data =>{
+                    alert(data.message);
+                    if(data.status === 'success') {
+                        closeBookingModal();
+                    }
+                })
+                .catch(error => {
+                    console.error(error);
+                    alert("Error while sending data.");
+                })
+        });
+    });
+
+    function openBookingModal(roomId, hotelName){
+        const modal = document.getElementById("booking-modal");
+        modal.style.display = 'block';
+        document.getElementById('hidden-room-id').value = roomId;
+        document.getElementById('modal-room-name').innerText = hotelName;
+    }
+
+    function closeBookingModal(){
+        document.getElementById("booking-modal").style.display = 'none';
+        document.getElementById('booking-form').reset();
+    }
+</script>
 
 </body>
 </html>
