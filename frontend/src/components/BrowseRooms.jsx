@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './BrowseRooms.css';
 
 const API_BASE = 'http://localhost/lab4';
 

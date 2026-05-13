@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import './App.css';
 
-// Importăm componentele pe care tocmai le-am creat
 import BrowseRooms from './components/BrowseRooms';
 import MyBookings from './components/MyBookings';
 

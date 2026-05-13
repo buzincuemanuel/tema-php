@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './MyBookings.css';
 
 const API_BASE = 'http://localhost/lab4';
 
@@ -16,7 +17,7 @@ export default function MyBookings() {
             const data = await response.json();
             setBookings(data);
         } catch (err) {
-            console.error("Eroare:", err);
+            console.error(err);
         }
     };
 
